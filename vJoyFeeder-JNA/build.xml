@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<project default="build" name="vJoyFeeder-JNA" xmlns:ivy="antlib:org.apache.ivy.ant">
+	<taskdef resource="org/apache/ivy/ant/antlib.xml" uri="antlib:org.apache.ivy.ant" />
+
+	<property name="src.dir" location="src" />
+	<property name="srcant.dir" location="src.ant" />
+
+	<property name="build.dir" location="build" />
+	<property name="classes.dir" location="${build.dir}/classes" />
+
+	<property name="dist.dir" location="${ant.project.name}-dist" />
+	<property name="dist.main.class" value="vjoyfeeder.Test" />
+	<property name="dist.jar" location="${dist.dir}/${ant.project.name}.jar" />
+	
+	<target name="retrieve">
+		<ivy:settings/>
+		<ivy:resolve />
+		<ivy:cachepath pathid="build.path" conf="compile" />
+		<ivy:cachepath pathid="runtime.path" conf="runtime" />
+	</target>
+
+	<target name="compile" depends="retrieve">
+		<echo>Classpath is ${toString:build.path}</echo>
+
+		<mkdir dir="${classes.dir}" />
+		<delete>
+			<fileset dir="${build.dir}/classes" includes="**/*" />
+		</delete>
+
+		<javac srcdir="${src.dir}" destdir="${classes.dir}" classpathref="build.path" debug="true" source="1.8" target="1.8" />
+
+		<copy todir="${classes.dir}">
+			<fileset dir="${src.dir}" includes="**/*.xml,**/*.properties,**/*.json" />
+		</copy>
+	</target>
+
+	<target name="build" depends="compile">
+		<!-- clean up dist.dir -->
+		<mkdir dir="${dist.dir}" />
+		<delete>
+			<fileset dir="${dist.dir}" includes="**/*" />
+		</delete>
+		<mkdir dir="${dist.dir}/lib" />
+
+		<echo>Classpath is ${toString:runtime.path}</echo>
+
+		<ivy:retrieve pattern="${dist.dir}/lib/[artifact](-[classifier])-[revision].[ext]" type="bundle,jar" />
+
+		<manifestclasspath property="manifest.classpath" jarfile="${dist.jar}">
+			<classpath>
+				<fileset dir="${dist.dir}/lib" includes="*.jar" />
+			</classpath>
+		</manifestclasspath>
+
+		<echo message="manifest classpath = ${manifest.classpath}" />
+
+		<jar destfile="${dist.jar}">
+			<fileset dir="${classes.dir}" />
+			<manifest>
+				<attribute name="Main-Class" value="${dist.main.class}" />
+				<attribute name="Class-Path" value="${manifest.classpath}" />
+			</manifest>
+		</jar>
+	</target>
+
+	<target name="clean">
+		<delete dir="${dist.dir}" />
+	</target>
+
+	<target name="run" depends="build">
+		<java jar="${dist.jar}" fork="true">
+			<arg line="who" />
+		</java>
+	</target>
+
+
+</project>
